@@ -1,0 +1,151 @@
+@page "/designations"
+@attribute [Authorize(Roles = "Admin")]
+
+@using System.ComponentModel.DataAnnotations
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+<h3>Designation Master</h3>
+
+<div class="mb-3">
+    <button class="btn btn-secondary" @onclick="Load" disabled="@_loading">Refresh</button>
+</div>
+
+<EditForm Model="_create" OnValidSubmit="Create">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label>Designation Name</label>
+        <InputText @bind-Value="_create.Name" class="form-control" placeholder="e.g. Manager" />
+    </div>
+    <button class="btn btn-primary" disabled="@_saving">Add</button>
+</EditForm>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger mt-3">@_error</div>
+}
+
+@if (Items is null)
+{
+    <p class="mt-3">Loading...</p>
+}
+else
+{
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Active</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Items)
+            {
+                <tr>
+                    <td>@d.Name</td>
+                    <td>@(d.IsActive ? "Yes" : "No")</td>
+                    <td style="width: 1%; white-space: nowrap;">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Toggle(d)" disabled="@_saving">
+                            @(d.IsActive ? "Deactivate" : "Activate")
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _loading;
+    private bool _saving;
+    private string _error = string.Empty;
+    private List<DesignationRow>? Items { get; set; }
+    private CreateDesignationModel _create = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _error = string.Empty;
+        try
+        {
+            Items = await Api.GetAsync<List<DesignationRow>>("/admin/designations", CancellationToken.None) ?? [];
+        }
+        catch (Exception ex)
+        {
+            Items = [];
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task Create()
+    {
+        var name = _create.Name?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        _saving = true;
+        _error = string.Empty;
+        try
+        {
+            await Api.PostAsync("/admin/designations", new { name }, CancellationToken.None);
+            _create = new CreateDesignationModel();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Toggle(DesignationRow row)
+    {
+        _saving = true;
+        _error = string.Empty;
+        try
+        {
+            await Api.PutAsync($"/admin/designations/{row.Id}/status", new { isActive = !row.IsActive }, CancellationToken.None);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed record DesignationRow(Guid Id, string Name, bool IsActive, DateTimeOffset CreatedAt);
+
+    private sealed class CreateDesignationModel
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+    }
+}

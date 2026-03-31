@@ -1,0 +1,98 @@
+@page "/payments"
+@attribute [Authorize(Roles = "Admin")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Payments</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Items is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Bill</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Gateway</th>
+                <th>PaidAt</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Items)
+            {
+                <tr>
+                    <td>@p.BillId</td>
+                    <td>@p.Amount</td>
+                    <td>@p.Status</td>
+                    <td>@p.PaymentGateway</td>
+                    <td>@p.PaidAt</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<PaymentRow>? Items { get; set; }
+    private string? Error { get; set; }
+    private bool _loading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            Error = "Unauthorized. Please login as Admin.";
+            Items ??= new List<PaymentRow>();
+            return;
+        }
+
+        _loading = true;
+        Error = null;
+        try
+        {
+            Items = await Api.GetAsync<List<PaymentRow>>("/admin/payments", CancellationToken.None) ?? new List<PaymentRow>();
+        }
+        catch
+        {
+            Error = "Failed to load payments. Ensure you are logged in as Admin and API is reachable.";
+            Items = new List<PaymentRow>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private sealed record PaymentRow(Guid Id, Guid BillId, decimal Amount, string Status, string PaymentGateway, DateTimeOffset? PaidAt);
+}

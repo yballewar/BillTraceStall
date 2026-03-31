@@ -1,0 +1,171 @@
+@page "/stall/orders"
+@attribute [Authorize(Roles = "TeaStallOwner")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+
+<h3>Stall Orders</h3>
+
+<div class="btn-group mb-3" role="group">
+    <button class="btn @(Selected == "Pending" ? "btn-primary" : "btn-outline-primary")" @onclick='() => ChangeStatus("Pending")'>Pending</button>
+    <button class="btn @(Selected == "Ready" ? "btn-primary" : "btn-outline-primary")" @onclick='() => ChangeStatus("Ready")'>Ready</button>
+    <button class="btn @(Selected == "Delivered" ? "btn-primary" : "btn-outline-primary")" @onclick='() => ChangeStatus("Delivered")'>Delivered</button>
+</div>
+
+<button class="btn btn-secondary mb-3 ms-2" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Orders.Count == 0)
+{
+    <p>No orders.</p>
+}
+else
+{
+    @foreach (var o in Orders)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fw-bold">Order: @o.Id</div>
+                        <div class="text-muted">@o.OrderTime.ToLocalTime()</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">@o.Status</div>
+                        <div class="text-muted">Total: @o.Total</div>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <div class="fw-bold">Office</div>
+                    <div>@o.Office.Name</div>
+                    <div class="text-muted">@o.Office.Address</div>
+                    <div class="text-muted">@o.Office.Phone</div>
+                </div>
+
+                <div class="mt-3">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var i in o.Items)
+                            {
+                                <tr>
+                                    <td>@i.ItemName</td>
+                                    <td>@i.Category</td>
+                                    <td class="text-end">@i.Quantity</td>
+                                    <td class="text-end">@i.Price</td>
+                                    <td class="text-end">@i.Amount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (o.Status == "Pending")
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => MarkReady(o.Id)" disabled="@MarkingReady">Mark Ready</button>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool Loading { get; set; }
+    private bool MarkingReady { get; set; }
+    private string? Error { get; set; }
+    private string Selected { get; set; } = "Pending";
+
+    private List<OrderVm> Orders { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task ChangeStatus(string status)
+    {
+        Selected = status;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            var payload = await Api.GetAsync<OrdersResponse>($"stall/orders?status={Selected}", CancellationToken.None);
+            var list = payload?.Items ?? [];
+            Orders = list.Select(o => new OrderVm(
+                o.Id,
+                o.Status,
+                o.OrderTime,
+                o.Office,
+                o.DeliveryBoyId,
+                o.Items,
+                o.Items.Sum(x => x.Amount))).ToList();
+        }
+        catch
+        {
+            Error = "Failed to load orders.";
+            Orders = [];
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task MarkReady(Guid orderId)
+    {
+        MarkingReady = true;
+        Error = null;
+        try
+        {
+            var res = await Api.PostAsync($"stall/orders/{orderId}/ready", CancellationToken.None);
+            if (!res.IsSuccessStatusCode)
+            {
+                Error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            MarkingReady = false;
+        }
+    }
+
+    private sealed record OrdersResponse(List<OrderDto> Items);
+    private sealed record OrderDto(Guid Id, string Status, DateTime OrderTime, OfficeDto Office, Guid? DeliveryBoyId, List<ItemDto> Items);
+    private sealed record OfficeDto(Guid Id, string Name, string ContactPerson, string Phone, string Address);
+    private sealed record ItemDto(Guid MenuItemId, string ItemName, string Category, int Quantity, decimal Price)
+    {
+        public decimal Amount => Quantity * Price;
+    }
+
+    private sealed record OrderVm(Guid Id, string Status, DateTime OrderTime, OfficeDto Office, Guid? DeliveryBoyId, List<ItemDto> Items, decimal Total);
+}

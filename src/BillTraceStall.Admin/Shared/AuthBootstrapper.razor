@@ -1,0 +1,46 @@
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedLocalStorage ProtectedLocalStore
+@inject BillTraceStall.Admin.Services.UserSession Session
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+@inject BillTraceStall.Admin.Services.JwtAuthenticationStateProvider AuthProvider
+
+@using System.IdentityModel.Tokens.Jwt
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@code {
+    private bool _done;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _done)
+        {
+            return;
+        }
+
+        _done = true;
+
+        try
+        {
+            var storedToken = await ProtectedLocalStore.GetAsync<string>("auth_token");
+            var storedUser = await ProtectedLocalStore.GetAsync<string>("auth_user");
+
+            var token = storedToken.Success ? storedToken.Value : null;
+            var user = storedUser.Success ? storedUser.Value : null;
+
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(user))
+            {
+                return;
+            }
+
+            AdminSession.SetToken(token);
+            Session.Token = token;
+            Session.ContactNumber = user;
+            Session.LoginTime = DateTime.Now;
+            Session.EmployeeId = 0;
+            Session.NotifyStateChanged();
+            await AuthProvider.MarkUserAsAuthenticatedAsync(token, user);
+        }
+        catch
+        {
+        }
+    }
+}

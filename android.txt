@@ -1,0 +1,43 @@
+the number 9167744063 - delivery
+9167744071 stall
+9167744064 office
+
+
+cd E:\BillTraceStall\mobile
+npx expo run:android --device e3ff6cb8
+
+cd E:\BillTraceStall\mobile
+npx expo run:android --device R9ZX80CV7PK 
+
+to find the list of attched device
+adb devices -l
+
+List of devices attached
+e3ff6cb8 device product:... model:... device:...
+
+the tab =R9ZX80CV7PK 
+
+
+
+new process to install 
+
+find the new attached device 
+adb devices
+
+
+
+
+nstall the APK to that TAB (works 100%) in TAB
+cd E:\BillTraceStall\mobile\android
+adb -s RZCX911S98X   install -r .\app\build\outputs\apk\debug\app-debug.apk
+
+--tab =R9ZX80CV7PK 
+--RZCY110R6LN
+
+
+stat app 
+cd E:\BillTraceStall\mobile
+npx expo start --dev-client
+
+
+

@@ -1,0 +1,32 @@
+@page "/logout"
+@layout BillTraceStall.Admin.Shared.BlankLayout
+
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedLocalStorage ProtectedLocalStore
+@inject NavigationManager Navigation
+@inject BillTraceStall.Admin.Services.UserSession Session
+@inject BillTraceStall.Admin.Services.JwtAuthenticationStateProvider AuthProvider
+@inject BillTraceStall.Admin.Services.IAuthCacheService AuthCache
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+<p>Signing out...</p>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        AuthCache.Clear();
+        AdminSession.Clear();
+        Session.Clear();
+        await AuthProvider.MarkUserAsLoggedOutAsync();
+
+        try { await ProtectedLocalStore.DeleteAsync("auth_token"); } catch { }
+        try { await ProtectedLocalStore.DeleteAsync("auth_user"); } catch { }
+        try { await ProtectedLocalStore.DeleteAsync("auth_pass"); } catch { }
+
+        Navigation.NavigateTo("/login", true);
+    }
+}

@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "BillTraceStall.Application/1.0.0": {
+        "dependencies": {
+          "BillTraceStall.Domain": "1.0.0"
+        },
+        "runtime": {
+          "BillTraceStall.Application.dll": {}
+        }
+      },
+      "BillTraceStall.Domain/1.0.0": {
+        "runtime": {
+          "BillTraceStall.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "BillTraceStall.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "BillTraceStall.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

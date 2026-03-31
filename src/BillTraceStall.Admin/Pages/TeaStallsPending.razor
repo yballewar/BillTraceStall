@@ -1,0 +1,148 @@
+@page "/tea-stalls/pending"
+@attribute [Authorize(Roles = "Admin")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net
+@using System.Net.Http.Json
+
+<h3>Non Approved Tea Stalls</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Items is null)
+{
+    <p>Loading...</p>
+}
+else if (Items.Count == 0)
+{
+    <p>No pending tea stalls.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Pincode</th>
+                <th>Code</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in Items)
+            {
+                <tr>
+                    <td>@t.StallName</td>
+                    <td>@t.OwnerPhone</td>
+                    <td>@t.Address</td>
+                    <td>@t.City</td>
+                    <td>@t.State</td>
+                    <td>@t.Pincode</td>
+                    <td>@t.UniqueCode</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" @onclick="() => Approve(t.Id)">Approve</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TeaStallRow>? Items { get; set; }
+    private string? Error { get; set; }
+    private bool _loading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            Error = "Unauthorized. Please login as Admin.";
+            Items ??= [];
+            return;
+        }
+
+        _loading = true;
+        Error = null;
+        try
+        {
+            var res = await Api.GetResponseAsync("/admin/tea-stalls/pending", CancellationToken.None);
+            if (res.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                Error = "Unauthorized. Please login again as Admin.";
+                Items = [];
+                return;
+            }
+
+            if (!res.IsSuccessStatusCode)
+            {
+                Error = $"{(int)res.StatusCode} {res.ReasonPhrase}";
+                Items = [];
+                return;
+            }
+
+            Items = await res.Content.ReadFromJsonAsync<List<TeaStallRow>>(cancellationToken: CancellationToken.None) ?? [];
+        }
+        catch (Exception ex)
+        {
+            Error = $"Failed to load tea stalls: {ex.Message}";
+            Items = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task Approve(Guid id)
+    {
+        Error = null;
+        var res = await Api.PostAsync($"/admin/tea-stalls/{id}/approve", CancellationToken.None);
+        if (!res.IsSuccessStatusCode)
+        {
+            Error = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        await Load();
+    }
+
+    private sealed record TeaStallRow(
+        Guid Id,
+        string StallName,
+        string Address,
+        string City,
+        string State,
+        string Pincode,
+        string UniqueCode,
+        string OwnerPhone);
+}

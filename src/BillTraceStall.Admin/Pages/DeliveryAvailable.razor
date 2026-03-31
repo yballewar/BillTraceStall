@@ -1,0 +1,113 @@
+@page "/delivery/available"
+@attribute [Authorize(Roles = "DeliveryBoy")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Available Orders</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Items.Count == 0)
+{
+    <p>No available orders.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Order</th>
+                <th>Time</th>
+                <th>Office</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var o in Items)
+            {
+                <tr>
+                    <td>@o.Id</td>
+                    <td>@o.OrderTime.ToLocalTime()</td>
+                    <td>
+                        <div class="fw-bold">@o.Office.OfficeName</div>
+                        <div class="text-muted">@o.Office.Address</div>
+                        <div class="text-muted">@o.Office.Phone</div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-primary" @onclick="() => Accept(o.Id)" disabled="@Accepting">Accept</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool Loading { get; set; }
+    private bool Accepting { get; set; }
+    private string? Error { get; set; }
+    private List<Row> Items { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            Items = await Api.GetAsync<List<Row>>("delivery/available", CancellationToken.None) ?? [];
+        }
+        catch
+        {
+            Error = "Failed to load available orders.";
+            Items = [];
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task Accept(Guid orderId)
+    {
+        Accepting = true;
+        Error = null;
+        try
+        {
+            var res = await Api.PostAsync("delivery/accept", new { orderId }, CancellationToken.None);
+            if (!res.IsSuccessStatusCode)
+            {
+                Error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Accepting = false;
+        }
+    }
+
+    private sealed record Row(Guid Id, string Status, DateTime OrderTime, Office Office);
+    private sealed record Office(string OfficeName, string Address, string Phone, string ContactPerson);
+}
+

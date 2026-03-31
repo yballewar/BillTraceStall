@@ -1,0 +1,110 @@
+@page "/office/orders"
+@attribute [Authorize(Roles = "Office")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject NavigationManager Navigation
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Orders</h3>
+
+<div class="row mb-3">
+    <div class="col-12 col-md-6">
+        <label class="form-label">Office Id (optional)</label>
+        <input class="form-control" @bind="OfficeId" placeholder="00000000-0000-0000-0000-000000000000" />
+    </div>
+    <div class="col-12 col-md-6 d-flex align-items-end">
+        <button class="btn btn-secondary" @onclick="Load">Refresh</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Items.Count == 0)
+{
+    <p>No orders.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Order</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th class="text-end">Amount</th>
+                <th>Office</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var o in Items)
+            {
+                <tr>
+                    <td>@o.Id</td>
+                    <td>@o.Status</td>
+                    <td>@o.OrderTime.ToLocalTime()</td>
+                    <td class="text-end">@o.Amount</td>
+                    <td>@o.Office.Name</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Open(o.Id)">View</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
+    private string OfficeId { get; set; } = string.Empty;
+    private List<OrderRow> Items { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            var path = "office/orders";
+            if (Guid.TryParse(OfficeId, out var parsed) && parsed != Guid.Empty)
+            {
+                path += $"?officeId={parsed}";
+            }
+
+            var payload = await Api.GetAsync<OrdersResponse>(path, CancellationToken.None);
+            Items = payload?.Items ?? [];
+        }
+        catch
+        {
+            Error = "Failed to load orders.";
+            Items = [];
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void Open(Guid id)
+    {
+        Navigation.NavigateTo($"/office/orders/{id}");
+    }
+
+    private sealed record OrdersResponse(List<OrderRow> Items);
+    private sealed record OrderRow(Guid Id, string Status, DateTime OrderTime, decimal Amount, OfficeRow Office);
+    private sealed record OfficeRow(Guid Id, string Name, string Address, string Phone, string ContactPerson);
+}
+

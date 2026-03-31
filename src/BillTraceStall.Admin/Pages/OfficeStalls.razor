@@ -1,0 +1,286 @@
+@page "/office/stalls"
+@attribute [Authorize(Roles = "Office")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject NavigationManager Navigation
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Stalls</h3>
+
+<div class="row mb-3">
+    <div class="col-12 col-md-6">
+        <label class="form-label">Search Stall</label>
+        <div class="input-group">
+            <input class="form-control" placeholder="Search by name / address / phone / code" @bind="SearchQuery" @bind:event="oninput" />
+            <button class="btn btn-outline-secondary" @onclick="Search">Search</button>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label">Join Stall (by Stall Code)</label>
+        <div class="input-group">
+            <input class="form-control" placeholder="TS123456" @bind="Join.StallUniqueCode" />
+            <button class="btn btn-primary" @onclick="JoinStall" disabled="@LoadingJoin">Join</button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Success))
+{
+    <div class="alert alert-success">@Success</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h5>My Stalls</h5>
+    @if (MyStalls.Count == 0)
+    {
+        <p>No joined stalls.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Office</th>
+                    <th>Stall</th>
+                    <th>Code</th>
+                    <th>Contact</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in MyStalls)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@s.OfficeName</div>
+                            <div class="text-muted">@s.Address</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold">@s.StallName</div>
+                            <div class="text-muted">@s.StallAddress</div>
+                        </td>
+                        <td>@s.StallUniqueCode</td>
+                        <td>@s.OwnerPhone</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenMenu(s.OfficeId)">Order</button>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="() => OpenOrders(s.OfficeId)">Orders</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (SearchResults is not null)
+    {
+        <h5 class="mt-4">Search Results</h5>
+        @if (SearchResults.Count == 0)
+        {
+            <p>No stalls found.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Stall</th>
+                        <th>Address</th>
+                        <th>Code</th>
+                        <th>Owner Phone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in SearchResults)
+                    {
+                        <tr>
+                            <td>@s.StallName</td>
+                            <td>@s.Address</td>
+                            <td>@s.UniqueCode</td>
+                            <td>@s.OwnerPhone</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+}
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Office Details (required for Join)</h5>
+        <div class="row">
+            <div class="col-12 col-md-6 mb-3">
+                <label class="form-label">Office Name</label>
+                <input class="form-control" @bind="Join.OfficeName" />
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label class="form-label">Contact Person</label>
+                <input class="form-control" @bind="Join.ContactPerson" />
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label class="form-label">Phone</label>
+                <input class="form-control" @bind="Join.Phone" />
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label class="form-label">Address</label>
+                <input class="form-control" @bind="Join.Address" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool Loading { get; set; }
+    private bool LoadingJoin { get; set; }
+    private string? Error { get; set; }
+    private string? Success { get; set; }
+    private string SearchQuery { get; set; } = string.Empty;
+
+    private List<MyStallRow> MyStalls { get; set; } = [];
+    private List<SearchStallRow>? SearchResults { get; set; }
+
+    private JoinModel Join { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMyStalls();
+    }
+
+    private async Task LoadMyStalls()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            var payload = await Api.GetAsync<MyStallsResponse>("office/stalls", CancellationToken.None);
+            MyStalls = (payload?.Items ?? []).Select(x => new MyStallRow(
+                x.OfficeId,
+                x.OfficeName,
+                x.Address,
+                x.Stall.StallId,
+                x.Stall.StallName,
+                x.Stall.Address,
+                x.Stall.UniqueCode,
+                x.Stall.OwnerPhone)).ToList();
+        }
+        catch
+        {
+            Error = "Failed to load stalls.";
+            MyStalls = [];
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task Search()
+    {
+        Error = null;
+        Success = null;
+        SearchResults = null;
+
+        var q = (SearchQuery ?? string.Empty).Trim();
+        if (q.Length < 2)
+        {
+            SearchResults = [];
+            return;
+        }
+
+        try
+        {
+            var payload = await Api.GetAsync<SearchResponse>($"office/stalls/search?query={Uri.EscapeDataString(q)}", CancellationToken.None);
+            SearchResults = payload?.Items ?? [];
+        }
+        catch
+        {
+            Error = "Failed to search stalls.";
+            SearchResults = [];
+        }
+    }
+
+    private async Task JoinStall()
+    {
+        Error = null;
+        Success = null;
+
+        if (string.IsNullOrWhiteSpace(Join.StallUniqueCode)
+            || string.IsNullOrWhiteSpace(Join.OfficeName)
+            || string.IsNullOrWhiteSpace(Join.ContactPerson)
+            || string.IsNullOrWhiteSpace(Join.Phone)
+            || string.IsNullOrWhiteSpace(Join.Address))
+        {
+            Error = "Please fill Stall code and Office details.";
+            return;
+        }
+
+        LoadingJoin = true;
+        try
+        {
+            var res = await Api.PostAsync("office/join-stall", new
+            {
+                stallUniqueCode = Join.StallUniqueCode,
+                officeName = Join.OfficeName,
+                contactPerson = Join.ContactPerson,
+                phone = Join.Phone,
+                address = Join.Address
+            }, CancellationToken.None);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                Error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            Success = "Joined stall successfully.";
+            await LoadMyStalls();
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            LoadingJoin = false;
+        }
+    }
+
+    private void OpenMenu(Guid officeId)
+    {
+        Navigation.NavigateTo($"/office/order/{officeId}");
+    }
+
+    private void OpenOrders(Guid officeId)
+    {
+        Navigation.NavigateTo($"/office/orders?officeId={officeId}");
+    }
+
+    private sealed record MyStallsResponse(List<MyStallResponseItem> Items);
+    private sealed record MyStallResponseItem(Guid OfficeId, string OfficeName, string ContactPerson, string Phone, string Address, string UniqueCode, StallResponse Stall);
+    private sealed record StallResponse(Guid StallId, string StallName, string Address, string City, string State, string Pincode, string UniqueCode, string OwnerPhone);
+
+    private sealed record SearchResponse(List<SearchStallRow> Items);
+    private sealed record SearchStallRow(Guid StallId, string StallName, string Address, string City, string State, string Pincode, string UniqueCode, string OwnerPhone);
+
+    private sealed record MyStallRow(Guid OfficeId, string OfficeName, string Address, Guid StallId, string StallName, string StallAddress, string StallUniqueCode, string OwnerPhone);
+
+    private sealed class JoinModel
+    {
+        public string StallUniqueCode { get; set; } = string.Empty;
+        public string OfficeName { get; set; } = string.Empty;
+        public string ContactPerson { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+    }
+}
+

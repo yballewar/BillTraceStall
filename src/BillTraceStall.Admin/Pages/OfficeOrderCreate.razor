@@ -1,0 +1,180 @@
+@page "/office/order/{OfficeId:guid}"
+@attribute [Authorize(Roles = "Office")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject NavigationManager Navigation
+
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+
+<h3>Place Order</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Menu is null)
+{
+    <p>Menu not found.</p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="fw-bold">@Menu.Stall.StallName</div>
+            <div class="text-muted">Code: @Menu.Stall.UniqueCode</div>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th class="text-end">Price</th>
+                <th style="width: 140px;" class="text-end">Qty</th>
+                <th class="text-end">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in Menu.Items)
+            {
+                var qty = Quantities.TryGetValue(i.Id, out var q) ? q : 0;
+                var amount = qty * i.Price;
+                <tr>
+                    <td>@i.ItemName</td>
+                    <td>@i.Category</td>
+                    <td class="text-end">@i.Price</td>
+                    <td class="text-end">
+                        <input type="number" class="form-control form-control-sm text-end" min="0" value="@qty" @oninput="e => SetQty(i.Id, e.Value?.ToString())" />
+                    </td>
+                    <td class="text-end">@amount</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="4" class="text-end">Total</th>
+                <th class="text-end">@Total</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <button class="btn btn-primary" @onclick="PlaceOrder" disabled="@Placing">Place Order</button>
+}
+
+@code {
+    [Parameter] public Guid OfficeId { get; set; }
+
+    private bool Loading { get; set; }
+    private bool Placing { get; set; }
+    private string? Error { get; set; }
+    private MenuResponse? Menu { get; set; }
+
+    private Dictionary<Guid, int> Quantities { get; set; } = new();
+
+    private decimal Total => Menu is null
+        ? 0m
+        : Menu.Items.Sum(i => (Quantities.TryGetValue(i.Id, out var q) ? q : 0) * i.Price);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            Menu = await Api.GetAsync<MenuResponse>($"office/stalls/{OfficeId}/menu", CancellationToken.None);
+            Quantities = Menu?.Items.ToDictionary(x => x.Id, _ => 0) ?? new Dictionary<Guid, int>();
+        }
+        catch
+        {
+            Error = "Failed to load menu.";
+            Menu = null;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void SetQty(Guid id, string? value)
+    {
+        if (!int.TryParse(value, out var qty) || qty < 0)
+        {
+            qty = 0;
+        }
+
+        Quantities[id] = qty;
+        StateHasChanged();
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (Menu is null)
+        {
+            return;
+        }
+
+        var items = Quantities
+            .Where(x => x.Value > 0)
+            .Select(x => new { menuItemId = x.Key, quantity = x.Value })
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            Error = "Please select at least one item.";
+            return;
+        }
+
+        Placing = true;
+        Error = null;
+        try
+        {
+            var res = await Api.PostAsync("orders", new
+            {
+                officeId = OfficeId,
+                orderType = 1,
+                items
+            }, CancellationToken.None);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                Error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            var created = await res.Content.ReadFromJsonAsync<CreateOrderResponse>(cancellationToken: CancellationToken.None);
+            if (created is null || created.Id == Guid.Empty)
+            {
+                Error = "Order created but response is invalid.";
+                return;
+            }
+
+            Navigation.NavigateTo($"/office/orders/{created.Id}", true);
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Placing = false;
+        }
+    }
+
+    private sealed record MenuResponse(Guid OfficeId, Stall Stall, List<MenuItem> Items);
+    private sealed record Stall(Guid Id, string StallName, string UniqueCode);
+    private sealed record MenuItem(Guid Id, string ItemName, decimal Price, string Category);
+    private sealed record CreateOrderResponse(Guid Id);
+}

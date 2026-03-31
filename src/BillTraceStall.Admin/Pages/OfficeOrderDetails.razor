@@ -1,0 +1,121 @@
+@page "/office/orders/{OrderId:guid}"
+@attribute [Authorize(Roles = "Office")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Order Details</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Order is null)
+{
+    <p>Order not found.</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold">Status: @Order.Status</div>
+                    <div class="text-muted">Time: @Order.OrderTime.ToLocalTime()</div>
+                    <div class="mt-2">Amount: <span class="fw-bold">@Order.Amount</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold">Office</div>
+                    <div>@Order.Office.Name</div>
+                    <div class="text-muted">@Order.Office.Address</div>
+                    <div class="text-muted">@Order.Office.Phone</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Order.Stall is not null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="fw-bold">Stall</div>
+                <div>@Order.Stall.StallName</div>
+                <div class="text-muted">Code: @Order.Stall.UniqueCode</div>
+            </div>
+        </div>
+    }
+
+    <h5>Items</h5>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in Order.Items)
+            {
+                <tr>
+                    <td>@i.ItemName</td>
+                    <td>@i.Category</td>
+                    <td class="text-end">@i.Quantity</td>
+                    <td class="text-end">@i.Price</td>
+                    <td class="text-end">@i.Amount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public Guid OrderId { get; set; }
+
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
+    private OrderDetails? Order { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            Order = await Api.GetAsync<OrderDetails>($"office/orders/{OrderId}", CancellationToken.None);
+        }
+        catch
+        {
+            Error = "Failed to load order.";
+            Order = null;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private sealed record OrderDetails(Guid Id, string Status, DateTime OrderTime, Office Office, Stall? Stall, List<Item> Items, decimal Amount);
+    private sealed record Office(Guid Id, string Name, string Address, string Phone, string ContactPerson);
+    private sealed record Stall(Guid Id, string StallName, string UniqueCode);
+    private sealed record Item(Guid Id, string ItemName, string Category, int Quantity, decimal Price, decimal Amount);
+}
+

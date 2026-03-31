@@ -1,0 +1,67 @@
+@page "/stall/profile"
+@attribute [Authorize(Roles = "TeaStallOwner")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Stall Profile</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Profile is null)
+{
+    <p>Profile not found.</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="fw-bold">@Profile.StallName</div>
+            <div class="text-muted">@Profile.Address</div>
+            <div class="mt-2">Code: <span class="fw-bold">@Profile.UniqueCode</span></div>
+            <div class="mt-2">Approved: <span class="fw-bold">@Profile.IsApproved</span></div>
+            <div class="mt-2">Active: <span class="fw-bold">@Profile.IsActive</span></div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
+    private ProfileDto? Profile { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Loading = true;
+        Error = null;
+        try
+        {
+            Profile = await Api.GetAsync<ProfileDto>("stall/profile", CancellationToken.None);
+        }
+        catch
+        {
+            Error = "Failed to load profile.";
+            Profile = null;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private sealed record ProfileDto(Guid Id, string StallName, string Address, string City, string State, string Pincode, string UniqueCode, bool IsApproved, bool IsActive);
+}

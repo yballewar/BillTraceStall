@@ -1,0 +1,104 @@
+.az-body {
+  min-height: 100vh;
+  background: #f5f6fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.az-signin-wrapper {
+  width: 100%;
+  max-width: 460px;
+}
+
+.az-card-signin {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+}
+
+.az-logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #5b47fb;
+  margin: 0 0 10px;
+  letter-spacing: 0.2px;
+  text-transform: lowercase;
+}
+
+.az-signin-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111827;
+}
+
+.az-signin-header h4 {
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0 0 18px;
+  color: #6b7280;
+}
+
+.az-signin-body .form-group {
+  margin-bottom: 14px;
+}
+
+.az-signin-body label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.az-signin-body .form-control {
+  height: 42px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.az-signin-body .form-control:focus {
+  border-color: #5b47fb;
+  box-shadow: 0 0 0 0.2rem rgba(91, 71, 251, 0.12);
+}
+
+.btn-az-primary {
+  background: #5b47fb;
+  border-color: #5b47fb;
+  color: #fff;
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-az-primary:hover,
+.btn-az-primary:focus {
+  background: #4a38ea;
+  border-color: #4a38ea;
+  color: #fff;
+}
+
+.az-signin-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.az-signin-footer a {
+  color: #111827;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.az-signin-footer a:hover {
+  text-decoration: underline;
+}
+
+.btn-block {
+  width: 100%;
+}

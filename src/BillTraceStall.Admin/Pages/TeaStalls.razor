@@ -1,0 +1,285 @@
+@page "/tea-stalls"
+@attribute [Authorize(Roles = "Admin")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Tea Stalls</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (PendingItems is null || ApprovedItems is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h5>Pending</h5>
+    @if (PendingItems.Count == 0)
+    {
+        <p>No pending tea stalls.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Pincode</th>
+                <th>Code</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in PendingItems)
+            {
+                <tr>
+                    @if (EditingId == t.Id)
+                    {
+                        <td><InputText class="form-control form-control-sm" @bind-Value="Edit.StallName" /></td>
+                        <td>@t.OwnerPhone</td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="Edit.Address" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="Edit.City" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="Edit.State" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="Edit.Pincode" /></td>
+                        <td>@t.UniqueCode</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-2" @onclick="() => SaveEdit(t.Id)">Save</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEdit">Cancel</button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@t.StallName</td>
+                        <td>@t.OwnerPhone</td>
+                        <td>@t.Address</td>
+                        <td>@t.City</td>
+                        <td>@t.State</td>
+                        <td>@t.Pincode</td>
+                        <td>@t.UniqueCode</td>
+                        <td class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" @onclick="() => Approve(t.Id)">Approve</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => BeginEdit(t)">Edit</button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    }
+
+    <h5 class="mt-4">Approved</h5>
+    @if (ApprovedItems.Count == 0)
+    {
+        <p>No approved tea stalls.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Pincode</th>
+                    <th>Code</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in ApprovedItems)
+                {
+                    <tr>
+                        <td>@t.StallName</td>
+                        <td>@t.OwnerPhone</td>
+                        <td>@t.Address</td>
+                        <td>@(t.IsActive ? "Running" : "Stopped")</td>
+                        <td>@t.City</td>
+                        <td>@t.State</td>
+                        <td>@t.Pincode</td>
+                        <td>@t.UniqueCode</td>
+                        <td>
+                            @if (t.IsActive)
+                            {
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => StopService(t.Id)">Stop Service</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-success" @onclick="() => StartService(t.Id)">Start Service</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<TeaStallRow>? PendingItems { get; set; }
+    private List<TeaStallRow>? ApprovedItems { get; set; }
+    private string? Error { get; set; }
+    private bool _loading;
+    private Guid? EditingId { get; set; }
+    private EditTeaStallModel Edit { get; set; } = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            Error = "Unauthorized. Please login as Admin.";
+            PendingItems ??= new List<TeaStallRow>();
+            ApprovedItems ??= new List<TeaStallRow>();
+            return;
+        }
+
+        _loading = true;
+        Error = null;
+        try
+        {
+            PendingItems = await Api.GetAsync<List<TeaStallRow>>("/admin/tea-stalls/pending", CancellationToken.None) ?? new List<TeaStallRow>();
+            ApprovedItems = await Api.GetAsync<List<TeaStallRow>>("/admin/tea-stalls/approved", CancellationToken.None) ?? new List<TeaStallRow>();
+        }
+        catch
+        {
+            Error = "Failed to load tea stalls. Ensure you are logged in as Admin and API is reachable.";
+            PendingItems = new List<TeaStallRow>();
+            ApprovedItems = new List<TeaStallRow>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task Approve(Guid id)
+    {
+        Error = null;
+        var res = await Api.PostAsync($"/admin/tea-stalls/{id}/approve", CancellationToken.None);
+        if (!res.IsSuccessStatusCode)
+        {
+            Error = "Approve failed. Ensure you are logged in as Admin.";
+            return;
+        }
+        await Load();
+    }
+
+    private async Task StopService(Guid id)
+    {
+        Error = null;
+        var res = await Api.PutAsync($"/admin/tea-stalls/{id}/status", new { isActive = false }, CancellationToken.None);
+        if (!res.IsSuccessStatusCode)
+        {
+            Error = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        await Load();
+    }
+
+    private async Task StartService(Guid id)
+    {
+        Error = null;
+        var res = await Api.PutAsync($"/admin/tea-stalls/{id}/status", new { isActive = true }, CancellationToken.None);
+        if (!res.IsSuccessStatusCode)
+        {
+            Error = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        await Load();
+    }
+
+    private void BeginEdit(TeaStallRow row)
+    {
+        EditingId = row.Id;
+        Edit = new EditTeaStallModel
+        {
+            StallName = row.StallName,
+            Address = row.Address,
+            City = row.City,
+            State = row.State,
+            Pincode = row.Pincode
+        };
+    }
+
+    private void CancelEdit()
+    {
+        EditingId = null;
+        Edit = new EditTeaStallModel();
+    }
+
+    private async Task SaveEdit(Guid id)
+    {
+        Error = null;
+        var body = new
+        {
+            stallName = Edit.StallName,
+            address = Edit.Address,
+            city = Edit.City,
+            state = Edit.State,
+            pincode = Edit.Pincode
+        };
+
+        var res = await Api.PutAsync($"/admin/tea-stalls/{id}", body, CancellationToken.None);
+        if (!res.IsSuccessStatusCode)
+        {
+            Error = await res.Content.ReadAsStringAsync();
+            return;
+        }
+
+        CancelEdit();
+        await Load();
+    }
+
+    private sealed record TeaStallRow(
+        Guid Id,
+        string StallName,
+        string Address,
+        string City,
+        string State,
+        string Pincode,
+        string UniqueCode,
+        bool IsActive,
+        string OwnerPhone);
+
+    private sealed class EditTeaStallModel
+    {
+        public string StallName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string Pincode { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create new Account - BillTrace Tea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="login.css" />
+  <link rel="stylesheet" href="signup.css" />
+</head>
+<body>
+  <!--
+    Static layout reference only. The real tea-stall signup flow lives in the BillTrace dashboard app:
+    SwiggyZomatoIntegration → client/src/components/Signup.js (+ Signup.css, teaSignupOptions.js).
+    Match: Create new Account, YOUR ROLE chips, Name, Contact, Tea stall name / Address / State / City / Pincode selects, Sign up → BillTrace registration.
+  -->
+  <div class="shell signup-page tea-auth">
+    <main class="card" aria-labelledby="signup-title">
+      <div class="hero">
+        <div class="hero-inner">
+          <img class="heroImg heroImg--kettle" src="public/kettle.png" alt="" />
+        </div>
+      </div>
+      <div class="overlap-stage">
+        <img class="tea-float" src="public/chai.png" alt="" />
+        <div class="formBlock formBlock--signup-dark">
+          <h1 id="signup-title" class="title signup-title-ref">Create new Account</h1>
+          <p class="sub signup-sub-ref">
+            Already Registered? <a class="link signup-link-ref" href="login.html">Log in</a> here.
+          </p>
+          <p class="signup-section-label">Your role</p>
+          <p class="signup-static-note">
+            Use the React app for the full form (selects, validation, BillTrace handoff). This file documents the visual reference.
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

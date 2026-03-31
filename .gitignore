@@ -1,0 +1,67 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.cache
+
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+
+# Build folders
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Zip files
+*.zip.gradle/ 
+mobile/.gradle/ 
+
+
+
+.gradle/
+build/
+**/mobile/.gradle-user/
+
+.ndk-cache/
+*.zip
+
+.ndk-cache/
+*.zip
+
+.ndk-cache/
+*.zip
+node_modules/
+.env
+
+# Android / Expo / Cache
+.ndk-cache/
+.expo/
+.android-home/
+.gradle-user/
+.dotSlash-cache/
+
+# Node
+node_modules/
+
+# Env
+.env
+
+# Build
+build/
+dist/
+
+# Logs
+*.log
+
+# Zip / large files
+*.zip

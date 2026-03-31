@@ -1,0 +1,32 @@
+@page "/dashboard"
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Dashboard</h3>
+
+<p>Welcome.</p>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.IsInRole("Office"))
+        {
+            Navigation.NavigateTo("/office/stalls", true);
+            return;
+        }
+
+        if (authState.User.IsInRole("TeaStallOwner"))
+        {
+            Navigation.NavigateTo("/stall/orders", true);
+            return;
+        }
+
+        if (authState.User.IsInRole("DeliveryBoy"))
+        {
+            Navigation.NavigateTo("/delivery/available", true);
+            return;
+        }
+    }
+}

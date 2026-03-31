@@ -1,0 +1,309 @@
+@page "/register"
+@layout BillTraceStall.Admin.Shared.BlankLayout
+
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedLocalStorage ProtectedLocalStore
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject BillTraceStall.Admin.Services.UserSession Session
+@inject BillTraceStall.Admin.Services.JwtAuthenticationStateProvider AuthProvider
+@inject BillTraceStall.Admin.Services.IAuthCacheService AuthCache
+@inject BillTraceStall.Admin.Services.AuthService AuthService
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using BillTraceStall.Application.DTOs.Auth
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+<div class="az-body az-body-signin">
+    <div class="az-signin-wrapper">
+        <div class="az-card-signin">
+            <h1 class="az-logo">BillTrace</h1>
+            <div class="az-signin-header">
+                <h2>Create Account</h2>
+                <h4>Please sign up to continue</h4>
+            </div>
+
+            <div class="az-signin-body">
+                <EditForm Model="_register" OnValidSubmit="PerformRegister">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <InputText @bind-Value="_register.Name" placeholder="Enter your full name" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <InputText @bind-Value="_register.Phone" placeholder="Enter your contact number" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password</label>
+                        <InputText @bind-Value="_register.Password" type="password" placeholder="Create password" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <InputText @bind-Value="_register.ConfirmPassword" type="password" placeholder="Confirm password" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input value="Admin" class="form-control" disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <InputSelect @bind-Value="_designationSelection" class="form-control">
+                            <option value="">-- Select --</option>
+                            @foreach (var d in (_designationOptions ?? []))
+                            {
+                                <option value="@d.Name">@d.Name</option>
+                            }
+                            <option value="__OTHER__">Other</option>
+                        </InputSelect>
+                        @if (_designationSelection == "__OTHER__")
+                        {
+                            <div class="mt-2">
+                                <InputText @bind-Value="_register.DesignationName" placeholder="Enter designation" class="form-control" />
+                            </div>
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label>Address</label>
+                        <InputText @bind-Value="_register.Address" placeholder="Enter address (optional)" class="form-control" />
+                    </div>
+
+                    <button class="btn btn-az-primary btn-block" disabled="@(!CanSubmit)">Create Account</button>
+                </EditForm>
+
+                @if (_otpRequested)
+                {
+                    <div class="mt-3">
+                        <div class="form-group">
+                            <label>OTP</label>
+                            <InputText @bind-Value="_otp" placeholder="Enter OTP" class="form-control" />
+                        </div>
+                        <button class="btn btn-az-primary btn-block" @onclick="VerifyOtp" disabled="@_verifying">Verify & Sign In</button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger mt-3">@_error</div>
+                }
+                @if (!string.IsNullOrEmpty(_success))
+                {
+                    <div class="alert alert-success mt-3">@_success</div>
+                }
+            </div>
+
+            <div class="az-signin-footer">
+                <p>Already have an account? <a href="/login">Sign In</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _error = string.Empty;
+    private string _success = string.Empty;
+    private bool _otpRequested;
+    private bool _registering;
+    private bool _verifying;
+    private string _otp = string.Empty;
+
+    private RegisterModel _register = new();
+    private List<DesignationOption>? _designationOptions;
+    private string _designationSelection = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("api");
+            _designationOptions = await client.GetFromJsonAsync<List<DesignationOption>>("public/designations", CancellationToken.None) ?? [];
+        }
+        catch
+        {
+            _designationOptions = [];
+        }
+
+        if ((_designationOptions?.Count ?? 0) == 0)
+        {
+            _designationSelection = "__OTHER__";
+        }
+    }
+
+    private async Task PerformRegister()
+    {
+        _error = _success = string.Empty;
+        _otpRequested = false;
+
+        try
+        {
+            if (!IsFormValid)
+            {
+                _error = GetFormErrorMessage();
+                return;
+            }
+
+            _registering = true;
+
+            var client = ClientFactory.CreateClient("api");
+            var designationName =
+                _designationSelection == "__OTHER__"
+                    ? _register.DesignationName
+                    : string.IsNullOrWhiteSpace(_designationSelection)
+                        ? null
+                        : _designationSelection;
+            var res = await client.PostAsJsonAsync(
+                "auth/register",
+                new RegisterRequest(_register.Name, _register.Phone, _register.Role, _register.Address, designationName, null, null, null, null, null),
+                CancellationToken.None
+            );
+            if (!res.IsSuccessStatusCode)
+            {
+                var text = await res.Content.ReadAsStringAsync();
+                _error = string.IsNullOrWhiteSpace(text) ? "Registration failed." : text;
+                return;
+            }
+
+            _otpRequested = true;
+            _success = "OTP sent. (In Development, OTP is 999999)";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Registration failed: {ex.Message}";
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+
+    private async Task VerifyOtp()
+    {
+        _error = _success = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(_otp))
+        {
+            _error = "Please enter OTP.";
+            return;
+        }
+
+        try
+        {
+            _verifying = true;
+            var (token, error) = await AuthService.VerifyRegistrationWithErrorAsync(_register.Phone, _otp, _register.Password, CancellationToken.None);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _error = error ?? "Invalid OTP.";
+                return;
+            }
+
+            Session.Token = token;
+            Session.ContactNumber = _register.Phone;
+            Session.LoginTime = DateTime.Now;
+            Session.EmployeeId = 0;
+            Session.NotifyStateChanged();
+
+            AdminSession.SetToken(token);
+
+            try { await ProtectedLocalStore.SetAsync("auth_token", token); } catch { }
+            try { await ProtectedLocalStore.SetAsync("auth_user", _register.Phone); } catch { }
+            try { await ProtectedLocalStore.SetAsync("auth_pass", _register.Password); } catch { }
+
+            await AuthProvider.MarkUserAsAuthenticatedAsync(token, _register.Phone);
+            _success = "Account created. Redirecting...";
+            await Task.Delay(250);
+            Navigation.NavigateTo("/dashboard", true);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Verification failed: {ex.Message}";
+        }
+        finally
+        {
+            _verifying = false;
+        }
+    }
+
+    private sealed class RegisterModel
+    {
+        [Required] public string Name { get; set; } = string.Empty;
+        [Required] public string Phone { get; set; } = string.Empty;
+        [Required] public string Password { get; set; } = string.Empty;
+        [Required] [Compare(nameof(Password))] public string ConfirmPassword { get; set; } = string.Empty;
+        public string Role { get; set; } = "ADMIN";
+        public string? DesignationName { get; set; }
+        public string? Address { get; set; }
+    }
+
+    private sealed record DesignationOption(Guid Id, string Name);
+
+    private bool CanSubmit => !_registering && !_otpRequested && IsFormValid;
+
+    private bool IsFormValid
+        => !string.IsNullOrWhiteSpace(_register.Name)
+           && !string.IsNullOrWhiteSpace(_register.Phone)
+           && !string.IsNullOrWhiteSpace(_register.Password)
+           && string.Equals(_register.Password, _register.ConfirmPassword, StringComparison.Ordinal)
+           && IsDesignationValid();
+
+    private bool IsDesignationValid()
+    {
+        if (string.IsNullOrWhiteSpace(_designationSelection))
+        {
+            return !string.IsNullOrWhiteSpace(_register.DesignationName);
+        }
+
+        if (_designationSelection == "__OTHER__")
+        {
+            return !string.IsNullOrWhiteSpace(_register.DesignationName);
+        }
+
+        return true;
+    }
+
+    private string GetFormErrorMessage()
+    {
+        var issues = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(_register.Name))
+        {
+            issues.Add("Name");
+        }
+        if (string.IsNullOrWhiteSpace(_register.Phone))
+        {
+            issues.Add("Mobile number");
+        }
+        if (string.IsNullOrWhiteSpace(_register.Password))
+        {
+            issues.Add("Password");
+        }
+        if (!string.Equals(_register.Password, _register.ConfirmPassword, StringComparison.Ordinal))
+        {
+            issues.Add("Confirm password mismatch");
+        }
+
+        if (string.IsNullOrWhiteSpace(_designationSelection) && string.IsNullOrWhiteSpace(_register.DesignationName))
+        {
+            issues.Add("Designation");
+        }
+        else if (_designationSelection == "__OTHER__" && string.IsNullOrWhiteSpace(_register.DesignationName))
+        {
+            issues.Add("Designation");
+        }
+
+        if (issues.Count == 0)
+        {
+            return "Please fill all required fields correctly.";
+        }
+
+        return "Please check: " + string.Join(", ", issues) + ".";
+    }
+}

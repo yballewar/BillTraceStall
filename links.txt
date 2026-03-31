@@ -1,0 +1,9 @@
+Here are the links you can open in browser:
+
+- API Swagger (all endpoints) : http://localhost:5191/swagger
+- API base redirect (dev) : http://localhost:5191/
+If you mean the Admin dashboard (web app) :
+
+- Admin Login : http://localhost:5000/login
+- Admin Dashboard : http://localhost:5000/dashboard
+Note: Tea Stall / Office dashboards are inside the mobile app , not a browser page. To see them you must open the Expo mobile app and login with the correct role.

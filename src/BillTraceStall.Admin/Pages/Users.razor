@@ -1,0 +1,96 @@
+@page "/users"
+@attribute [Authorize(Roles = "Admin")]
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+@inject BillTraceStall.Admin.Services.AdminSession AdminSession
+
+@using Microsoft.AspNetCore.Authorization
+
+<h3>Users</h3>
+
+<button class="btn btn-secondary mb-3" @onclick="Load">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Items is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Active</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Items)
+            {
+                <tr>
+                    <td>@u.Name</td>
+                    <td>@u.Phone</td>
+                    <td>@u.Role</td>
+                    <td>@u.IsActive</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<UserRow>? Items { get; set; }
+    private string? Error { get; set; }
+    private bool _loading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(AdminSession.AccessToken))
+        {
+            Error = "Unauthorized. Please login as Admin.";
+            Items ??= new List<UserRow>();
+            return;
+        }
+
+        _loading = true;
+        Error = null;
+        try
+        {
+            Items = await Api.GetAsync<List<UserRow>>("/admin/users", CancellationToken.None) ?? new List<UserRow>();
+        }
+        catch
+        {
+            Error = "Failed to load users. Ensure you are logged in as Admin and API is reachable.";
+            Items = new List<UserRow>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private sealed record UserRow(Guid Id, string Name, string Phone, string Role, bool IsActive);
+}

@@ -1,0 +1,148 @@
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
+
+<nav class="navbar navbar-dark px-3 py-2">
+    <a class="navbar-brand mb-0" href="/">BillTraceStall.Admin</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#sidebarNav" aria-controls="sidebarNav" aria-expanded="true" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</nav>
+
+<div class="collapse show px-2 pb-3" id="sidebarNav">
+    <AuthorizeView>
+        <Authorized Context="auth">
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <NavLink class="nav-link text-light" href="/dashboard" ActiveClass="active" Match="NavLinkMatch.All">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard
+                    </NavLink>
+                </li>
+
+                <AuthorizeView Roles="Admin" Context="adminAuth">
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/employees" ActiveClass="active">
+                            <i class="fas fa-users mr-2"></i>Employees
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/designations" ActiveClass="active">
+                            <i class="fas fa-list mr-2"></i>Designations
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-light d-flex align-items-center justify-content-between" data-toggle="collapse" href="#teaStallsSubmenu" role="button" aria-expanded="@(IsTeaStallsSection ? "true" : "false")" aria-controls="teaStallsSubmenu">
+                            <span><i class="fas fa-mug-hot mr-2"></i>Tea Stalls</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                        <div class="collapse @(IsTeaStallsSection ? "show" : "")" id="teaStallsSubmenu">
+                            <ul class="nav flex-column ml-3">
+                                <li class="nav-item">
+                                    <NavLink class="nav-link text-light py-1" href="/tea-stalls/pending" ActiveClass="active">Non Approved</NavLink>
+                                </li>
+                                <li class="nav-item">
+                                    <NavLink class="nav-link text-light py-1" href="/tea-stalls/active" ActiveClass="active">Active</NavLink>
+                                </li>
+                                <li class="nav-item">
+                                    <NavLink class="nav-link text-light py-1" href="/tea-stalls/stopped" ActiveClass="active">Non Active</NavLink>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/users" ActiveClass="active">
+                            <i class="fas fa-user-friends mr-2"></i>Users
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/payments" ActiveClass="active">
+                            <i class="fas fa-credit-card mr-2"></i>Payments
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Office" Context="officeAuth">
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/office/stalls" ActiveClass="active">
+                            <i class="fas fa-store mr-2"></i>Stalls
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/office/orders" ActiveClass="active">
+                            <i class="fas fa-shopping-bag mr-2"></i>Orders
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/office/dashboard" ActiveClass="active">
+                            <i class="fas fa-building mr-2"></i>Office Dashboard
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/office/item-wise" ActiveClass="active">
+                            <i class="fas fa-table mr-2"></i>Item-wise Orders
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/office/payments" ActiveClass="active">
+                            <i class="fas fa-receipt mr-2"></i>Paid Amounts
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="TeaStallOwner" Context="stallAuth">
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/stall/profile" ActiveClass="active">
+                            <i class="fas fa-store-alt mr-2"></i>Stall Profile
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/stall/orders" ActiveClass="active">
+                            <i class="fas fa-receipt mr-2"></i>Orders
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="DeliveryBoy" Context="deliveryAuth">
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/delivery/available" ActiveClass="active">
+                            <i class="fas fa-list mr-2"></i>Available Orders
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link text-light" href="/delivery/today" ActiveClass="active">
+                            <i class="fas fa-motorcycle mr-2"></i>My Deliveries
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link text-light" href="/logout" ActiveClass="active">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </NavLink>
+                </li>
+            </ul>
+        </Authorized>
+
+        <NotAuthorized>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <NavLink class="nav-link text-light" href="/login" ActiveClass="active">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link text-light" href="/register" ActiveClass="active">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </NavLink>
+                </li>
+            </ul>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private bool IsTeaStallsSection => (Navigation.Uri ?? string.Empty).Contains("/tea-stalls", StringComparison.OrdinalIgnoreCase);
+}

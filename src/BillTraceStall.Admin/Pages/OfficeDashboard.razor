@@ -1,0 +1,96 @@
+@page "/office/dashboard"
+@inject BillTraceStall.Admin.Services.AdminApiClient Api
+
+<h3>Office Dashboard</h3>
+
+<div class="row mb-3">
+    <div class="col-12 col-md-3">
+        <label class="form-label">Month</label>
+        <input class="form-control" type="month" value="@MonthValue" @onchange="OnMonthChanged" />
+    </div>
+    <div class="col-12 col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary w-100" @onclick="Load">Load</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Days is not null && Days.Count == 0)
+{
+    <p>No orders found for this month.</p>
+}
+else if (Days is not null)
+{
+    <div class="row">
+        @foreach (var d in Days)
+        {
+            <div class="col-12 col-md-4 col-lg-3 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="fw-bold">@d.Date</div>
+                        <div class="mt-2">Tea: @d.TeaQty</div>
+                        <div>Coffee: @d.CoffeeQty</div>
+                        <div class="mt-2 fw-bold">Amount: @d.TotalAmount</div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
+    private int SelectedMonth { get; set; } = DateTime.Today.Month;
+    private int SelectedYear { get; set; } = DateTime.Today.Year;
+    private List<DayRow>? Days { get; set; }
+
+    private string MonthValue => $"{SelectedYear:D4}-{SelectedMonth:D2}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Error = null;
+        Loading = true;
+        Days = null;
+        try
+        {
+            var payload = await Api.GetAsync<DashboardResponse>($"office/dashboard?month={SelectedMonth}&year={SelectedYear}", CancellationToken.None);
+            Days = payload?.Days ?? new List<DayRow>();
+        }
+        catch
+        {
+            Error = "Failed to load dashboard. Ensure you are logged in as Office and API is reachable.";
+            Days = new List<DayRow>();
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void OnMonthChanged(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString() ?? string.Empty;
+        var parts = raw.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 2 && int.TryParse(parts[0], out var y) && int.TryParse(parts[1], out var m))
+        {
+            SelectedYear = y;
+            SelectedMonth = m;
+        }
+    }
+
+    private sealed record DashboardResponse(int Month, int Year, List<DayRow> Days);
+    private sealed record DayRow(string Date, int TeaQty, int CoffeeQty, int TotalQty, decimal TotalAmount);
+}
