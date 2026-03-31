@@ -18,6 +18,10 @@ logs/
 dist/
 build/
 
+# .NET build outputs
+**/bin/
+**/obj/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -49,6 +53,8 @@ node_modules/
 .android-home/
 .gradle-user/
 .dotSlash-cache/
+.dotslash-cache/
+mobile/.localappdata/
 
 # Node
 node_modules/
@@ -65,3 +71,7 @@ dist/
 
 # Zip / large files
 *.zip
+
+# IIS publish profiles / local publish artifacts
+**/Properties/PublishProfiles/
+Publish/

@@ -26,7 +26,7 @@ export const tokens = {
   text: {
     xs: 12,
     sm: 14,
-    md: 16,
+    md: 14,
     lg: 18,
     xl: 22,
     xxl: 28,

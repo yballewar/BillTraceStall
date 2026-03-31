@@ -118,7 +118,11 @@ public sealed class AuthService : IAuthService
 
         if (user.Role == UserRole.Admin)
         {
-            return (false, 403, "Admin login uses password. OTP login is not allowed.");
+            var allowAdminOtpLogin = bool.TryParse(_config["Admin:AllowAdminOtpLogin"], out var allow) && allow;
+            if (!allowAdminOtpLogin)
+            {
+                return (false, 403, "Admin login uses password. OTP login is not allowed.");
+            }
         }
 
         await CreateAndSendOtpAsync(phone, "login", ct);

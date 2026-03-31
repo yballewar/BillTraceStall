@@ -2,7 +2,7 @@ import axios from 'axios';
 import { clearAuth, getAccessToken } from './storage';
 import { emitUnauthorized } from './authEvents';
 
-const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:5191/api/v1';
+const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://billtracestall.billtraceinfotech.com/api/v1';
 
 export const api = axios.create({
   baseURL: resolvedBaseUrl,

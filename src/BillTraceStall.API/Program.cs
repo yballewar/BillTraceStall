@@ -197,6 +197,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
+else
+{
+    var swaggerEnabled = builder.Configuration.GetValue<bool?>("Swagger:Enabled") ?? false;
+    if (swaggerEnabled)
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        app.MapOpenApi();
+        app.MapGet("/", () => Results.Redirect("/swagger"));
+    }
+}
 
 app.MapControllers();
 app.MapHub<OrdersHub>("/hubs/orders");

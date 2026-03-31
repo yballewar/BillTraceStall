@@ -4,30 +4,30 @@
  */
 
 export const colors = {
-  // Base backgrounds - soft, warm light
-  bg: '#F8FAFC',
-  bgSecondary: '#F1F5F9',
+  // Base backgrounds - tea theme
+  bg: '#F2F0ED',
+  bgSecondary: '#EEE8E0',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   card: '#FFFFFF',
-  cardHover: '#F8FAFC',
+  cardHover: '#F8F4EF',
 
   // Borders
-  border: 'rgba(0,0,0,0.06)',
-  borderStrong: 'rgba(0,0,0,0.12)',
-  borderFocus: 'rgba(99,102,241,0.5)',
+  border: 'rgba(79,45,15,0.12)',
+  borderStrong: 'rgba(79,45,15,0.24)',
+  borderFocus: 'rgba(107,53,8,0.45)',
 
   // Text hierarchy (dark on light)
-  text: '#0F172A',
-  textSecondary: '#334155',
-  textMuted: '#64748B',
-  textFaint: '#94A3B8',
+  text: '#4F2D0F',
+  textSecondary: '#5E4025',
+  textMuted: '#7F6D5D',
+  textFaint: '#9A8B7E',
 
-  // Primary - Indigo
-  primary: '#6366F1',
-  primaryDark: '#4F46E5',
-  primaryLight: '#818CF8',
-  primarySoft: 'rgba(99,102,241,0.12)',
+  // Primary - Tea brown
+  primary: '#6B3508',
+  primaryDark: '#5B2E08',
+  primaryLight: '#8B571F',
+  primarySoft: 'rgba(107,53,8,0.14)',
 
   // Success - Emerald
   success: '#10B981',
@@ -35,11 +35,11 @@ export const colors = {
   successLight: '#34D399',
   successSoft: 'rgba(16,185,129,0.12)',
 
-  // Warning - Amber
-  warning: '#F59E0B',
-  warningDark: '#D97706',
-  warningLight: '#FBBF24',
-  warningSoft: 'rgba(245,158,11,0.12)',
+  // Warning - Tan
+  warning: '#C99359',
+  warningDark: '#B88145',
+  warningLight: '#D6A064',
+  warningSoft: 'rgba(201,147,89,0.15)',
 
   // Danger - Rose/Red
   danger: '#EF4444',
@@ -47,31 +47,31 @@ export const colors = {
   dangerLight: '#F87171',
   dangerSoft: 'rgba(239,68,68,0.12)',
 
-  // Info - Sky blue
-  info: '#0EA5E9',
-  infoDark: '#0284C7',
-  infoLight: '#38BDF8',
-  infoSoft: 'rgba(14,165,233,0.12)',
+  // Info - warm neutral accent
+  info: '#8E5F32',
+  infoDark: '#7A5028',
+  infoLight: '#A97844',
+  infoSoft: 'rgba(142,95,50,0.15)',
 
-  // Accent - Teal
-  accent: '#14B8A6',
-  accentDark: '#0D9488',
-  accentLight: '#2DD4BF',
+  // Accent - warm muted
+  accent: '#A97844',
+  accentDark: '#8E5F32',
+  accentLight: '#C99359',
 
-  // Purple - Office
-  purple: '#8B5CF6',
-  purpleDark: '#7C3AED',
-  purpleLight: '#A78BFA',
-  purpleSoft: 'rgba(139,92,246,0.12)',
+  // Purple replacement for theme consistency
+  purple: '#8E5F32',
+  purpleDark: '#7A5028',
+  purpleLight: '#B08150',
+  purpleSoft: 'rgba(142,95,50,0.15)',
 
   // Neutral
   white: '#FFFFFF',
   black: '#000000',
 
   // Role accents
-  stall: '#F59E0B',
-  office: '#6366F1',
-  delivery: '#10B981',
+  stall: '#C99359',
+  office: '#8E5F32',
+  delivery: '#6B3508',
 } as const;
 
 export const gradients = {

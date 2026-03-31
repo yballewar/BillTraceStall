@@ -8,10 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppDispatch } from '../../redux/hooks';
-import { requestOtp, verifyOtp } from '../../redux/authSlice';
+import { requestOtp } from '../../redux/authSlice';
 import { Badge, showAlert } from '../../ui';
 
 /** Design reference: layered hero + glass overlap + asymmetric white sheet (not a flat Figma export). */
@@ -26,23 +25,18 @@ const C = {
   placeholder: '#9a8f88',
 };
 
-type Role = 'TeaStallOwner' | 'Office' | 'DeliveryBoy';
+const formatPhoneDisplay = (raw: string) => {
+  const digits = raw.replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+};
 
 export function LoginScreen({ navigation }: any) {
   const dispatch = useAppDispatch();
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(__DEV__ ? '999999' : '');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [role, setRole] = useState<Role>('TeaStallOwner');
-
-  const roles: { key: Role; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: 'TeaStallOwner', label: 'Tea Stall\nOwner', icon: 'person-outline' },
-    { key: 'Office', label: 'Office\nstaff', icon: 'business-outline' },
-    { key: 'DeliveryBoy', label: 'Delivery\nboy', icon: 'bicycle-outline' },
-  ];
-
-  const buttonLabel = submitting ? 'Working...' : otp.trim().length === 6 ? 'Log in' : 'Send OTP';
+  const buttonLabel = submitting ? 'Working...' : 'Send OTP';
 
   return (
     <SafeAreaView style={styles.shell} edges={['top', 'bottom', 'left', 'right']}>
@@ -74,50 +68,21 @@ export function LoginScreen({ navigation }: any) {
             </Text>
           </Text>
 
-          <View style={styles.roleRow}>
-            {roles.map((r) => {
-              const on = role === r.key;
-              return (
-                <TouchableOpacity
-                  key={r.key}
-                  activeOpacity={0.85}
-                  onPress={() => setRole(r.key)}
-                  style={[styles.rolePill, on && styles.rolePillOn]}
-                >
-                  <Ionicons name={r.icon} size={18} color={C.tanBtn} />
-                  <Text style={styles.roleText}>{r.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
           <View style={styles.wrap}>
             <Text style={styles.label}>CONTACT NUMBER</Text>
             <TextInput
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(value) => {
+                setPhone(formatPhoneDisplay(value));
+                if (error) setError(null);
+              }}
               placeholder="1234567890"
               placeholderTextColor={C.placeholder}
               style={styles.input}
               keyboardType="phone-pad"
               autoComplete="tel"
               importantForAutofill="no"
-            />
-          </View>
-
-          <View style={styles.wrap}>
-            <Text style={styles.label}>OTP</Text>
-            <TextInput
-              value={otp}
-              onChangeText={setOtp}
-              placeholder="******"
-              placeholderTextColor={C.placeholder}
-              style={styles.input}
-              secureTextEntry
-              keyboardType="number-pad"
-              autoComplete="sms-otp"
-              importantForAutofill="no"
-              maxLength={6}
+              maxLength={11}
             />
           </View>
 
@@ -133,18 +98,17 @@ export function LoginScreen({ navigation }: any) {
             activeOpacity={0.88}
             onPress={async () => {
               if (submitting) return;
+              const normalizedPhone = phone.replace(/\D/g, '');
+              if (normalizedPhone.length !== 10) {
+                setError('Please enter a valid 10-digit mobile number');
+                return;
+              }
               setSubmitting(true);
               setError(null);
               try {
-                if (otp.trim().length === 6) {
-                  if (__DEV__ && otp.trim() === '999999') {
-                    await dispatch(requestOtp({ phone, mode: 'login' })).unwrap();
-                  }
-                  await dispatch(verifyOtp({ phone, otp: otp.trim() })).unwrap();
-                  return;
-                }
-                await dispatch(requestOtp({ phone, mode: 'login' })).unwrap();
+                await dispatch(requestOtp({ phone: normalizedPhone, mode: 'login' })).unwrap();
                 showAlert('OTP', 'OTP sent to your mobile number');
+                navigation.navigate('Otp', { phone: normalizedPhone });
               } catch (e: any) {
                 setError(String(e ?? 'Login failed'));
               } finally {
@@ -236,34 +200,6 @@ const styles = StyleSheet.create({
   linkBold: {
     color: C.label,
     fontWeight: '800',
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 18,
-    justifyContent: 'space-between',
-  },
-  rolePill: {
-    flex: 1,
-    minHeight: 58,
-    borderWidth: 1,
-    borderColor: C.tanBtn,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    gap: 4,
-    backgroundColor: C.white,
-  },
-  rolePillOn: {
-    backgroundColor: 'rgba(198, 145, 84, 0.15)',
-  },
-  roleText: {
-    fontSize: 9,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 12,
-    color: C.tanBtn,
   },
   wrap: {
     marginBottom: 15,

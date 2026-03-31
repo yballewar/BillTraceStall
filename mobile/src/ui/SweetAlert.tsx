@@ -14,6 +14,7 @@ export type AlertOptions = {
   title: string;
   message?: string;
   buttons?: AlertButton[];
+  variant?: 'default' | 'payment';
 };
 
 type InternalState = AlertOptions | null;
@@ -64,22 +65,24 @@ export function SweetAlertRoot() {
   if (!alert) return null;
 
   const btns = alert.buttons ?? [{ text: 'OK', style: 'default' }];
+  const isPayment = alert.variant === 'payment';
+  const s = isPayment ? paymentStyles : styles;
 
   return (
     <Modal transparent visible={true} animationType="fade" onRequestClose={() => handleButton(btns[0])}>
       <TouchableOpacity
-        style={styles.overlay}
+        style={s.overlay}
         activeOpacity={1}
         onPress={() => (btns.some((b) => b.style === 'cancel') ? handleButton(btns.find((b) => b.style === 'cancel')!) : undefined)}
       >
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.cardWrap}>
-          <View style={styles.card}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.icon}>!</Text>
+        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={s.cardWrap}>
+          <View style={s.card}>
+            <View style={s.iconCircle}>
+              <Text style={s.icon}>!</Text>
             </View>
-            <Text style={styles.title}>{alert.title}</Text>
-            {alert.message ? <Text style={styles.message}>{alert.message}</Text> : null}
-            <View style={[styles.buttons, btns.length >= 3 && styles.buttonsColumn]}>
+            <Text style={s.title}>{alert.title}</Text>
+            {alert.message ? <Text style={s.message}>{alert.message}</Text> : null}
+            <View style={[s.buttons, !isPayment && btns.length >= 3 && s.buttonsColumn]}>
               {btns.map((btn, i) => {
                 const isDestructive = btn.style === 'destructive';
                 const isCancel = btn.style === 'cancel';
@@ -88,19 +91,19 @@ export function SweetAlertRoot() {
                     key={i}
                     onPress={() => handleButton(btn)}
                     style={[
-                      styles.btn,
-                      isDestructive && styles.btnDanger,
-                      isCancel && styles.btnGhost,
-                      btns.length > 1 && styles.btnMulti,
-                      btns.length >= 3 && styles.btnFullWidth,
+                      s.btn,
+                      isDestructive && s.btnDanger,
+                      isCancel && s.btnGhost,
+                      !isPayment && btns.length > 1 && s.btnMulti,
+                      !isPayment && btns.length >= 3 && s.btnFullWidth,
                     ]}
                     activeOpacity={0.85}
                   >
                     <Text
                       style={[
-                        styles.btnText,
-                        isDestructive && styles.btnTextDanger,
-                        isCancel && styles.btnTextGhost,
+                        s.btnText,
+                        isDestructive && s.btnTextDanger,
+                        isCancel && s.btnTextGhost,
                       ]}
                       numberOfLines={1}
                     >
@@ -215,5 +218,111 @@ const styles = StyleSheet.create({
   },
   btnTextGhost: {
     color: colors.text,
+  },
+});
+
+const paymentStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: tokens.space.xl,
+  },
+  cardWrap: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 34,
+    paddingVertical: 24,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e5ddd4',
+    ...(Platform.OS === 'android'
+      ? { elevation: 8 }
+      : {
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.25,
+          shadowRadius: 24,
+          shadowColor: '#000',
+        }),
+  },
+  iconCircle: {
+    width: 66,
+    height: 66,
+    borderRadius: 10,
+    backgroundColor: '#8b571f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    transform: [{ rotate: '45deg' }],
+  },
+  icon: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#ffffff',
+    transform: [{ rotate: '-45deg' }],
+  },
+  title: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: '#4f2d0f',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  message: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#7f6d5d',
+    textAlign: 'center',
+    marginBottom: 18,
+    lineHeight: 20,
+  },
+  buttons: {
+    flexDirection: 'column',
+    gap: 10,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  buttonsColumn: {
+    flexDirection: 'column',
+  },
+  btn: {
+    width: '100%',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: '#6b3508',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnMulti: {
+    flex: 1,
+  },
+  btnFullWidth: {
+    width: '100%',
+    flex: undefined,
+  },
+  btnDanger: {
+    backgroundColor: '#6b3508',
+  },
+  btnGhost: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d7d0c8',
+  },
+  btnText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#d6a064',
+  },
+  btnTextDanger: {
+    color: '#d6a064',
+  },
+  btnTextGhost: {
+    color: '#4f2d0f',
   },
 });

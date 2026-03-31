@@ -25,7 +25,7 @@ function toInt(v: string) {
   return Number.isFinite(n) ? Math.trunc(n) : 0;
 }
 
-const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:5191/api/v1';
+const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://billtracestall.billtraceinfotech.com/api/v1';
 
 async function openReportPdf(path: string, params: Record<string, string | number | null | undefined>) {
   const token = await getAccessToken();

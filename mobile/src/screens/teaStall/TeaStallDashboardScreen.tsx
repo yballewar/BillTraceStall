@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../services/api';
-import { Badge, Button, Card, Input, Screen, colors, tokens, typography } from '../../ui';
+import { Badge, Screen } from '../../ui';
 
 type StallProfile = {
   id: string;
@@ -59,12 +59,21 @@ function shiftMonth(year: number, month: number, delta: number) {
   return { year: nextYear, month: nextMonth };
 }
 
-const statColors = [
-  { bg: colors.infoSoft, border: colors.info, text: colors.infoDark },
-  { bg: colors.purpleSoft, border: colors.purple, text: colors.purpleDark },
-  { bg: colors.successSoft, border: colors.success, text: colors.successDark },
-  { bg: colors.warningSoft, border: colors.warning, text: colors.warningDark },
-];
+const C = {
+  page: '#FFFFFF',
+  header: '#5b2e08',
+  title: '#d6a064',
+  white: '#FFFFFF',
+  body: '#f6f3ef',
+  textDark: '#4e2d0f',
+  muted: '#7b5e45',
+  chip: '#c99359',
+  stat: '#5f3008',
+  orderCard: '#5f3008',
+  latestWrap: '#c79052',
+  success: '#34b266',
+  borderSoft: 'rgba(96,53,14,0.14)',
+};
 
 export function TeaStallDashboardScreen() {
   const now = useMemo(() => new Date(), []);
@@ -155,196 +164,212 @@ export function TeaStallDashboardScreen() {
   };
 
   return (
-    <Screen padded={false} edges={['bottom', 'left', 'right']} style={{ backgroundColor: colors.white }}>
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
-        <View style={{ flex: 1, backgroundColor: design.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden' }}>
-          <View style={{ backgroundColor: design.hero, paddingTop: 24, paddingBottom: 38, paddingHorizontal: tokens.space.xl }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 16,
-                  backgroundColor: 'rgba(204,149,87,0.18)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="cafe" size={28} color={design.brownLight} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 22, fontWeight: '900', color: colors.white, letterSpacing: -0.4 }} numberOfLines={1}>
-                  {profile?.stallName ?? 'Tea Stall Dashboard'}
-                </Text>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: design.textMuted }} numberOfLines={1}>
-                  {profile?.uniqueCode ? `Code: ${profile.uniqueCode}` : 'Dashboard'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={loading ? undefined : load}
-                style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Ionicons name="refresh" size={22} color={colors.white} />
-              </TouchableOpacity>
+    <Screen padded={false} edges={['bottom', 'left', 'right']} style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={loading ? undefined : load} style={styles.refreshBtn}>
+          <Text style={styles.refreshText}>{loading ? 'LOADING' : 'REFRESH'}</Text>
+        </TouchableOpacity>
+        <Image source={require('../../../assets/web/kettle.png')} style={styles.kettle} resizeMode="contain" />
+      </View>
+
+      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
+        <Image source={require('../../../assets/web/GLSSimage.png')} style={styles.glass} resizeMode="contain" />
+
+        <View style={styles.dateWrap}>
+          <Text style={styles.sectionLabel}>DATE</Text>
+          <View style={styles.dateRow}>
+            <TouchableOpacity
+              onPress={() => {
+                const next = shiftMonth(year, month, -1);
+                setYear(next.year);
+                setMonth(next.month);
+              }}
+            >
+              <Text style={styles.monthArrow}>‹ Prev</Text>
+            </TouchableOpacity>
+            <View style={styles.monthChip}>
+              <Text style={styles.monthChipText}>{monthLabel}</Text>
             </View>
-
-            {profile ? (
-              <View style={{ marginTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Badge tone="info">{monthLabel}</Badge>
-                <Badge tone={profile.isApproved ? 'success' : 'warning'}>{profile.isApproved ? 'Approved' : 'Pending'}</Badge>
-              </View>
-            ) : (
-              <View style={{ marginTop: 14, alignItems: 'flex-start' }}>
-                <Badge tone="info">{monthLabel}</Badge>
-              </View>
-            )}
+            <TouchableOpacity
+              onPress={() => {
+                const next = shiftMonth(year, month, 1);
+                setYear(next.year);
+                setMonth(next.month);
+              }}
+            >
+              <Text style={styles.monthArrow}>Next ›</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          <ScrollView
-            contentContainerStyle={{
-              backgroundColor: colors.white,
-              borderTopLeftRadius: 40,
-              borderTopRightRadius: 40,
-              marginTop: -24,
-              paddingTop: tokens.space.lg,
-              paddingHorizontal: tokens.space.xl,
-              paddingBottom: tokens.space.xxxl,
-              gap: 14,
-            }}
-          >
-            <Card variant="elevated" style={{ gap: tokens.space.sm, paddingVertical: 18, borderRadius: 18 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => {
-                    const next = shiftMonth(year, month, -1);
-                    setYear(next.year);
-                    setMonth(next.month);
-                  }}
-                >
-                  Prev
-                </Button>
-                <Badge tone="info">{monthLabel}</Badge>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => {
-                    const next = shiftMonth(year, month, 1);
-                    setYear(next.year);
-                    setMonth(next.month);
-                  }}
-                >
-                  Next
-                </Button>
-              </View>
-            </Card>
+        <View style={styles.profileRow}>
+          <View style={styles.avatar}>
+            <Ionicons name="cafe-outline" size={20} color={C.chip} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.stallName}>{profile?.stallName ?? 'Billtrace'}</Text>
+            <Text style={styles.stallCode}>{profile?.uniqueCode ? `Code: ${profile.uniqueCode}` : 'Code: --'}</Text>
+          </View>
+          {profile ? <Badge tone={profile.isApproved ? 'success' : 'warning'}>{profile.isApproved ? 'Approved' : 'Pending'}</Badge> : null}
+        </View>
 
-            {loading ? <ActivityIndicator color={colors.primary} /> : null}
-            {error ? (
-              <View style={{ alignItems: 'flex-start' }}>
-                <Badge tone="danger">{error}</Badge>
-              </View>
-            ) : null}
+        {error ? (
+          <View style={{ marginBottom: 8 }}>
+            <Badge tone="danger">{error}</Badge>
+          </View>
+        ) : null}
 
-            {needCreate ? (
-              <Card variant="elevated" style={{ gap: tokens.space.lg, borderRadius: 18 }}>
-                <Badge tone="warning">Create Profile</Badge>
-                <Text style={typography.h4}>Create Tea Stall Profile</Text>
-                <Text style={typography.faint}>Create your stall profile once to access dashboard.</Text>
-                <Input label="Stall Name" placeholder="Stall name" value={stallName} onChangeText={setStallName} />
-                <Input label="Address" placeholder="Address" value={address} onChangeText={setAddress} />
-                <Input label="City" placeholder="City" value={city} onChangeText={setCity} />
-                <Input label="State" placeholder="State" value={state} onChangeText={setState} />
-                <Input label="Pincode" placeholder="Pincode" value={pincode} onChangeText={setPincode} keyboardType="number-pad" />
-                <Button onPress={createStall} disabled={loading}>
-                  Create
-                </Button>
-              </Card>
-            ) : null}
+        {loading ? <ActivityIndicator color={C.stat} style={{ marginVertical: 8 }} /> : null}
 
-            {data ? (
-              <View style={{ gap: tokens.space.lg }}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.sm }}>
+        {needCreate ? (
+          <View style={styles.createWrap}>
+            <Text style={styles.createTitle}>Create Tea Stall Profile</Text>
+            <TextInput value={stallName} onChangeText={setStallName} placeholder="Stall Name" placeholderTextColor="#9f8f81" style={styles.createInput} />
+            <TextInput value={address} onChangeText={setAddress} placeholder="Address" placeholderTextColor="#9f8f81" style={styles.createInput} />
+            <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor="#9f8f81" style={styles.createInput} />
+            <TextInput value={state} onChangeText={setState} placeholder="State" placeholderTextColor="#9f8f81" style={styles.createInput} />
+            <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" placeholderTextColor="#9f8f81" style={styles.createInput} keyboardType="number-pad" />
+            <TouchableOpacity onPress={createStall} style={styles.createBtn} disabled={loading}>
+              <Text style={styles.createBtnText}>Create</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {data ? (
+          <>
+            <View style={styles.statsGrid}>
               {[
-                { label: 'Offices', value: data.counts.offices, ...statColors[0] },
-                { label: 'Menu Items', value: data.counts.menuItems, ...statColors[1] },
-                { label: 'Delivery Boys', value: data.counts.deliveryBoys, ...statColors[2] },
-                { label: 'Total', value: `₹${Math.round(data.totalAmount)}`, ...statColors[3] },
-              ].map((s, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    minWidth: '45%',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: s.bg,
-                    borderRadius: 16,
-                    paddingVertical: 10,
-                    paddingHorizontal: tokens.space.md,
-                    borderWidth: 1,
-                    borderColor: s.border,
-                  }}
-                >
-                  <Text style={[typography.faint, { fontSize: 10 }]}>{s.label}</Text>
-                  <Text style={[typography.body, { fontSize: tokens.text.sm, fontWeight: '800', color: s.text }]}>{s.value}</Text>
+                { icon: 'business-outline', label: 'Offices:', value: data.counts.offices },
+                { icon: 'fast-food-outline', label: 'Menu Items:', value: data.counts.menuItems },
+                { icon: 'bicycle-outline', label: 'Delivery Boys:', value: data.counts.deliveryBoys },
+                { icon: 'cash-outline', label: 'Total:', value: `₹${Math.round(data.totalAmount)}` },
+              ].map((s) => (
+                <View key={s.label} style={styles.statPill}>
+                  <Ionicons name={s.icon as any} size={16} color={C.chip} />
+                  <Text style={styles.statLabel}>{s.label}</Text>
+                  <Text style={styles.statValue}>{s.value}</Text>
                 </View>
               ))}
             </View>
 
-            <Card variant="elevated" style={{ gap: 6, paddingTop: 0, borderRadius: 18 }}>
-              <Text style={[typography.h4, { marginTop: 0 }]}>Orders</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
-                <View style={{ flex: 1, minWidth: '48%' }}>
-                  <Badge tone="neutral" style={{ alignSelf: 'stretch' }}>Total: {data.counts.orders}</Badge>
-                </View>
-                <View style={{ flex: 1, minWidth: '48%' }}>
-                  <Badge tone="success" style={{ alignSelf: 'stretch' }}>Delivered: {data.counts.delivered}</Badge>
-                </View>
-                <View style={{ flex: 1, minWidth: '48%' }}>
-                  <Badge tone="warning" style={{ alignSelf: 'stretch' }}>Pending: {data.counts.pending}</Badge>
-                </View>
-                <View style={{ flex: 1, minWidth: '48%' }}>
-                  <Badge tone="danger" style={{ alignSelf: 'stretch' }}>Cancelled: {data.counts.cancelled}</Badge>
-                </View>
+            <View style={styles.ordersCard}>
+              <Text style={styles.ordersTitle}>Orders</Text>
+              <View style={styles.ordersGrid}>
+                <Text style={styles.ordersCell}>Total: {data.counts.orders}</Text>
+                <Text style={styles.ordersCell}>Delivered: {data.counts.delivered}</Text>
+                <Text style={styles.ordersCell}>Pending: {data.counts.pending}</Text>
+                <Text style={styles.ordersCell}>Cancelled: {data.counts.cancelled}</Text>
               </View>
-            </Card>
+            </View>
 
-            <Card variant="elevated" style={{ gap: 6, borderRadius: 18 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={typography.h4}>Latest Orders</Text>
-                <Badge tone="info">{pendingOrders.length}</Badge>
-              </View>
+            <View style={styles.latestWrap}>
+              <Text style={styles.latestTitle}>Latest Orders</Text>
               {pendingOrders.length === 0 ? (
-                <Text style={typography.faint}>No new orders.</Text>
+                <Text style={{ color: C.textDark, fontWeight: '600' }}>No new orders.</Text>
               ) : (
-                pendingOrders.map((o) => {
+                pendingOrders.slice(0, 3).map((o) => {
                   const total = (o.items ?? []).reduce((sum, it) => sum + it.quantity * it.price, 0);
                   return (
-                    <Card key={o.id} variant="outlined" style={{ gap: 3, marginTop: 3 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                        <Text style={{ color: colors.text, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                    <View key={o.id} style={styles.latestItem}>
+                      <View style={styles.latestHead}>
+                        <Text style={styles.latestOffice} numberOfLines={1}>
                           {o.office.name}
                         </Text>
-                        <Badge tone="success">₹{Math.round(total)}</Badge>
+                        <Text style={styles.latestAmt}>₹{Math.round(total)}</Text>
                       </View>
-                      <Text style={typography.faint}>{new Date(o.orderTime).toLocaleString()}</Text>
-                      <Text style={{ color: colors.textMuted, fontWeight: '600' }} numberOfLines={2}>
-                        {(o.items ?? []).map((i) => `${i.itemName}(${i.quantity})`).join(', ')}
+                      <Text style={styles.latestTime}>{new Date(o.orderTime).toLocaleString()}</Text>
+                      <Text style={styles.latestDesc} numberOfLines={2}>
+                        {(o.items ?? []).map((i) => `${i.itemName} (${i.quantity})`).join(', ')}
                       </Text>
-                    </Card>
+                    </View>
                   );
                 })
               )}
-            </Card>
-          </View>
+            </View>
+          </>
         ) : null}
-          </ScrollView>
-        </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  page: { backgroundColor: C.page, flex: 1 },
+  header: {
+    backgroundColor: C.header,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 26,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  headerTitle: { fontSize: 40, fontWeight: '900', color: C.title, marginBottom: 16 },
+  refreshBtn: {
+    borderWidth: 1.6,
+    borderColor: C.title,
+    borderRadius: 18,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  refreshText: { color: C.title, fontSize: 20, fontWeight: '800' },
+  kettle: { position: 'absolute', right: -24, bottom: -8, width: 220, height: 170, opacity: 0.92 },
+  body: {
+    flex: 1,
+    backgroundColor: C.body,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    marginTop: -12,
+  },
+  bodyContent: { padding: 16, paddingBottom: 28 },
+  glass: { position: 'absolute', right: -22, top: 52, width: 190, height: 380, opacity: 0.4 },
+  dateWrap: { marginTop: 6, marginBottom: 12 },
+  sectionLabel: { textAlign: 'center', color: '#b98a52', fontWeight: '800', letterSpacing: 0.8, marginBottom: 8 },
+  dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  monthArrow: { color: '#b98a52', fontSize: 14, fontWeight: '800' },
+  monthChip: { backgroundColor: '#dbd8d4', paddingHorizontal: 22, paddingVertical: 7, borderRadius: 10 },
+  monthChipText: { color: C.textDark, fontWeight: '800', fontSize: 16 },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.header, alignItems: 'center', justifyContent: 'center' },
+  stallName: { color: C.textDark, fontSize: 34, fontWeight: '900' },
+  stallCode: { color: C.muted, fontSize: 24, fontWeight: '600', marginTop: 2 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  statPill: {
+    width: '48%',
+    backgroundColor: C.stat,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statLabel: { color: '#d8c0a5', fontSize: 15, fontWeight: '700' },
+  statValue: { color: C.title, fontSize: 15, fontWeight: '900', marginLeft: 'auto' },
+  ordersCard: { backgroundColor: C.orderCard, borderRadius: 22, padding: 14, marginBottom: 14 },
+  ordersTitle: { color: C.title, fontSize: 32, fontWeight: '900', marginBottom: 10 },
+  ordersGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  ordersCell: { width: '50%', color: C.white, fontSize: 14, fontWeight: '700', paddingVertical: 6 },
+  latestWrap: { backgroundColor: C.latestWrap, borderRadius: 22, padding: 14 },
+  latestTitle: { color: C.textDark, fontSize: 34, fontWeight: '900', marginBottom: 10 },
+  latestItem: { backgroundColor: C.orderCard, borderRadius: 14, padding: 12 },
+  latestHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  latestOffice: { color: C.white, fontSize: 18, fontWeight: '800', flex: 1, marginRight: 8 },
+  latestAmt: { color: C.success, fontSize: 20, fontWeight: '900' },
+  latestTime: { color: '#d5b796', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  latestDesc: { color: C.white, fontSize: 14, fontWeight: '700' },
+  createWrap: {
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.borderSoft,
+    borderRadius: 16,
+    padding: 14,
+    gap: 8,
+    marginBottom: 14,
+  },
+  createTitle: { color: C.textDark, fontSize: 16, fontWeight: '800', marginBottom: 2 },
+  createInput: { backgroundColor: '#efe7df', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: C.textDark },
+  createBtn: { backgroundColor: C.chip, borderRadius: 12, paddingVertical: 11, marginTop: 4 },
+  createBtnText: { color: C.textDark, textAlign: 'center', fontWeight: '800', fontSize: 15 },
+});

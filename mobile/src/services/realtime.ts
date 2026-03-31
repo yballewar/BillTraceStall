@@ -13,7 +13,7 @@ export type OrderRealtimeEvent = {
 type Listener = (evt: OrderRealtimeEvent) => void;
 
 function resolveHubUrl() {
-  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:5191/api/v1';
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://billtracestall.billtraceinfotech.com/api/v1';
   let origin = apiBaseUrl;
   try {
     const u = new URL(apiBaseUrl);
